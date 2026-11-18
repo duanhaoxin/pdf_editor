@@ -153,8 +153,15 @@ export function EditorApp() {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null
-      const typing =
-        target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+      const typing = Boolean(
+        event.isComposing ||
+          target?.closest('textarea, input, [contenteditable="true"]') ||
+          target?.tagName === 'INPUT' ||
+          target?.tagName === 'TEXTAREA' ||
+          target?.isContentEditable,
+      )
+      if (typing) return
+
       const meta = event.metaKey || event.ctrlKey
 
       if (meta && event.key.toLowerCase() === 'o') {
@@ -200,18 +207,19 @@ export function EditorApp() {
         setFitMode('width')
         return
       }
-      if (typing) return
       if (event.key === '?' || (event.shiftKey && event.key === '/')) {
         setShortcutsOpen(true)
       }
-      if (event.key === 'Delete' || event.key === 'Backspace') {
-        event.preventDefault()
+      if (event.key === 'Backspace' || event.key === 'Delete') {
         if (selectedAnnotationId) {
+          event.preventDefault()
           const host = pages.find((page) => page.annotations.some((ann) => ann.id === selectedAnnotationId))
           if (host) deleteAnnotation(host.id, selectedAnnotationId)
-        } else {
+        } else if (event.key === 'Delete') {
+          event.preventDefault()
           deletePages()
         }
+        return
       }
       const toolMap: Record<string, (typeof Tools)[keyof typeof Tools]> = {
         v: Tools.select,
@@ -325,7 +333,7 @@ export function EditorApp() {
         onPickImage={() => imageInputRef.current?.click()}
       />
 
-      {pages.length === 0 ? (
+      {pages.length === 0 && !fileName ? (
         <EmptyState
           onOpen={() => openInputRef.current?.click()}
           onSample={() =>
@@ -335,6 +343,13 @@ export function EditorApp() {
           }
           onDropFiles={(files) => void handleOpen(files, 'replace')}
         />
+      ) : pages.length === 0 ? (
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
+          <p>文档里已经没有页面。</p>
+          <button type="button" className="text-primary underline" onClick={() => useEditorStore.getState().insertBlankPage()}>
+            插入空白页
+          </button>
+        </div>
       ) : (
         <div className="flex min-h-0 flex-1">
           <PageSidebar />

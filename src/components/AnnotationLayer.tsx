@@ -51,17 +51,33 @@ export function AnnotationLayer({ page, viewport, pendingImage, onConsumeImage }
   const coverBackground = useEditorStore((s) => s.coverBackground)
 
   const hostRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const ignoreBlurRef = useRef(false)
   const [draft, setDraft] = useState<Draft | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const dragRef = useRef<{
     id: string
     origin: Point
     start: Annotation
+    moved: boolean
   } | null>(null)
 
   useEffect(() => {
     setEditingId(null)
   }, [page.id])
+
+  useEffect(() => {
+    if (!editingId) return
+    ignoreBlurRef.current = true
+    const frame = window.requestAnimationFrame(() => {
+      textareaRef.current?.focus()
+      textareaRef.current?.select()
+      window.setTimeout(() => {
+        ignoreBlurRef.current = false
+      }, 120)
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [editingId])
 
   function pointFromEvent(event: { clientX: number; clientY: number }): Point {
     return clientToPdf(event, hostRef.current!, viewport)
@@ -124,19 +140,24 @@ export function AnnotationLayer({ page, viewport, pendingImage, onConsumeImage }
   function onPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
     if (event.button !== 0 || !hostRef.current) return
     const point = pointFromEvent(event)
-    hostRef.current.setPointerCapture(event.pointerId)
+    const hit = annotationHitTest(page.annotations, point)
 
-    if (tool === Tools.select) {
-      const hit = annotationHitTest(page.annotations, point)
+    if (tool === Tools.select || (tool === Tools.text && hit?.type === 'text')) {
       if (hit) {
         selectAnnotation(hit.id)
+        if (hit.type === 'text' && tool === Tools.text) {
+          setEditingId(hit.id)
+          return
+        }
+        hostRef.current.setPointerCapture(event.pointerId)
         useEditorStore.getState().pushHistory()
-        dragRef.current = { id: hit.id, origin: point, start: hit }
+        dragRef.current = { id: hit.id, origin: point, start: hit, moved: false }
       } else {
         selectAnnotation(null)
         setEditingId(null)
       }
-      return
+      if (tool !== Tools.text) return
+      if (hit?.type === 'text') return
     }
 
     if (tool === Tools.text) {
@@ -146,7 +167,7 @@ export function AnnotationLayer({ page, viewport, pendingImage, onConsumeImage }
       addAnnotation(page.id, {
         id,
         type: 'text',
-        content: '输入文字',
+        content: '',
         fontSize,
         color: strokeColor,
         coverBackground,
@@ -155,6 +176,8 @@ export function AnnotationLayer({ page, viewport, pendingImage, onConsumeImage }
       setEditingId(id)
       return
     }
+
+    hostRef.current.setPointerCapture(event.pointerId)
 
     if (tool === Tools.stamp) {
       const corner = pointFromEvent({ clientX: event.clientX + 132, clientY: event.clientY + 52 })
@@ -189,6 +212,7 @@ export function AnnotationLayer({ page, viewport, pendingImage, onConsumeImage }
     if (dragRef.current) {
       const dx = point.x - dragRef.current.origin.x
       const dy = point.y - dragRef.current.origin.y
+      if (Math.hypot(dx, dy) > 1.5) dragRef.current.moved = true
       const moved = moveAnnotation(dragRef.current.start, dx, dy)
       updateAnnotation(page.id, moved, false)
       return
@@ -205,7 +229,11 @@ export function AnnotationLayer({ page, viewport, pendingImage, onConsumeImage }
   }
 
   function onPointerUp() {
+    const drag = dragRef.current
     dragRef.current = null
+    if (drag && !drag.moved && drag.start.type === 'text') {
+      setEditingId(drag.id)
+    }
     setDraft((current) => {
       if (current) commitDraft(current)
       return null
@@ -255,16 +283,29 @@ export function AnnotationLayer({ page, viewport, pendingImage, onConsumeImage }
                 color: ann.color,
                 fontSize: ann.fontSize * viewport.scale,
                 lineHeight: 1.35,
-                pointerEvents: tool === Tools.select ? 'auto' : 'none',
+                pointerEvents: 'auto',
+              }}
+              onPointerDown={(event) => {
+                event.stopPropagation()
+                if (tool === Tools.select || tool === Tools.text) {
+                  selectAnnotation(ann.id)
+                  setEditingId(ann.id)
+                }
               }}
             >
               {editingId === ann.id ? (
                 <textarea
+                  ref={textareaRef}
                   className="h-full w-full resize-none bg-transparent outline-none"
                   defaultValue={ann.content}
-                  autoFocus
+                  placeholder="输入文字"
                   onPointerDown={(event) => event.stopPropagation()}
+                  onKeyDown={(event) => event.stopPropagation()}
                   onBlur={(event) => {
+                    if (ignoreBlurRef.current) {
+                      event.target.focus()
+                      return
+                    }
                     const content = event.target.value
                     setEditingId(null)
                     if (!content.trim()) deleteAnnotation(page.id, ann.id)
@@ -272,7 +313,9 @@ export function AnnotationLayer({ page, viewport, pendingImage, onConsumeImage }
                   }}
                 />
               ) : (
-                <div className="whitespace-pre-wrap break-words">{ann.content}</div>
+                <div className="whitespace-pre-wrap break-words">
+                  {ann.content || '输入文字'}
+                </div>
               )}
             </div>
           )

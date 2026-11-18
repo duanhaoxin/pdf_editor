@@ -84,6 +84,7 @@ export function Toolbar({
   const deletePages = useEditorStore((s) => s.deletePages)
   const insertBlankPage = useEditorStore((s) => s.insertBlankPage)
   const hasDoc = useEditorStore((s) => s.pages.length > 0)
+  const hasSession = useEditorStore((s) => Boolean(s.fileName))
 
   return (
     <header className="flex min-h-14 flex-wrap items-center gap-2 border-b bg-card/90 px-3 py-2 backdrop-blur">
@@ -142,7 +143,7 @@ export function Toolbar({
       <ToolButton label="旋转页面" disabled={!hasDoc} onClick={() => rotatePages()}>
         <RotateCw />
       </ToolButton>
-      <ToolButton label="插入空白页" disabled={!hasDoc} onClick={() => insertBlankPage()}>
+      <ToolButton label="插入空白页" disabled={!hasDoc && !hasSession} onClick={() => insertBlankPage()}>
         <FilePlus2 />
       </ToolButton>
       <ToolButton label="删除页面" disabled={!hasDoc} onClick={() => deletePages()}>
