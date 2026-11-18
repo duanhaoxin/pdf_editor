@@ -1,9 +1,9 @@
-import fontkit from '@/lib/pdf/fontkit'
 import { PDFDocument, rgb } from 'pdf-lib'
 import { getChineseFontBytes } from './font'
 
 export async function createSamplePdf(): Promise<{ bytes: Uint8Array; name: string }> {
   const pdf = await PDFDocument.create()
+  const fontkit = (await import('@/lib/pdf/fontkit')).default
   pdf.registerFontkit(fontkit as never)
   const font = await pdf.embedFont(await getChineseFontBytes(), { subset: false })
   const accent = rgb(0.18, 0.35, 0.55)

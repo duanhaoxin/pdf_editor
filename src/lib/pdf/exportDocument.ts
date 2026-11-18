@@ -1,4 +1,3 @@
-import fontkit from '@/lib/pdf/fontkit'
 import {
   BlendMode,
   LineCapStyle,
@@ -216,6 +215,7 @@ export async function exportPagesToPdf(
   },
 ): Promise<Uint8Array> {
   const pdf = await PDFDocument.create()
+  const fontkit = (await import('@/lib/pdf/fontkit')).default
   pdf.registerFontkit(fontkit as never)
   const font = await pdf.embedFont(await getChineseFontBytes(), { subset: true })
   pdf.setTitle('轻页 PDF 导出')

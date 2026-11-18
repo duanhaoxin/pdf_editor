@@ -2,16 +2,45 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>轻页 PDF — 本地 PDF 编辑器</title>
     <meta
       name="description"
       content="在浏览器中打开、批注、重排并导出 PDF。文件只留在本地，无需上传。"
     />
+    <style>
+      html, body, #root {
+        min-height: 100%;
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        background: #f4efe6;
+        color: #2b2926;
+        font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+      }
+      #boot {
+        display: flex;
+        min-height: 100dvh;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 32px;
+        text-align: center;
+      }
+      #boot strong { font-size: 22px; }
+      #boot p { margin: 0; color: #6f6a63; }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <div id="root">
+      <div id="boot">
+        <strong>轻页 PDF</strong>
+        <p>正在加载编辑器…</p>
+      </div>
+    </div>
+    <script type="module" src="./src/main.tsx"></script>
   </body>
 </html>

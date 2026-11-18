@@ -14,14 +14,20 @@ function copyPdfjsAssets() {
     ['node_modules/pdfjs-dist/standard_fonts', 'standard_fonts'],
     ['node_modules/pdfjs-dist/iccs', 'iccs'],
   ]
+  fs.mkdirSync(dest, { recursive: true })
   for (const [from, to] of copies) {
     fs.cpSync(path.resolve(rootDir, from), path.join(dest, to), { recursive: true })
   }
+  fs.copyFileSync(
+    path.resolve(rootDir, 'node_modules/pdfjs-dist/build/pdf.worker.min.mjs'),
+    path.join(dest, 'pdf.worker.min.mjs'),
+  )
 }
 
 copyPdfjsAssets()
 
 export default defineConfig({
+  base: './',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

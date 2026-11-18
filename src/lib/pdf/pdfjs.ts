@@ -10,9 +10,13 @@ import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 
 let workerReady = false
 
+function publicAssetUrl(path: string) {
+  return new URL(`${import.meta.env.BASE_URL}${path}`, document.baseURI).href
+}
+
 export function ensurePdfjsWorker() {
   if (workerReady) return
-  GlobalWorkerOptions.workerSrc = pdfWorker
+  GlobalWorkerOptions.workerSrc = new URL(pdfWorker, document.baseURI).href
   workerReady = true
 }
 
@@ -44,10 +48,10 @@ export async function loadPdfjsDocument(
   const task = getDocument({
     data,
     password: options.password,
-    cMapUrl: '/pdfjs/cmaps/',
+    cMapUrl: publicAssetUrl('pdfjs/cmaps/'),
     cMapPacked: true,
-    standardFontDataUrl: '/pdfjs/standard_fonts/',
-    iccUrl: '/pdfjs/iccs/',
+    standardFontDataUrl: publicAssetUrl('pdfjs/standard_fonts/'),
+    iccUrl: publicAssetUrl('pdfjs/iccs/'),
     useSystemFonts: true,
     verbosity: 0,
   })

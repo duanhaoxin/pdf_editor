@@ -1,12 +1,17 @@
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Toaster } from '@/components/ui/sonner'
 import { EditorApp } from '@/components/EditorApp'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 export default function App() {
   return (
-    <TooltipProvider delayDuration={250}>
-      <EditorApp />
-      <Toaster position="bottom-right" richColors />
-    </TooltipProvider>
+    <ErrorBoundary>
+      <div data-app-ready="true" className="h-dvh min-h-dvh">
+        <TooltipProvider delayDuration={250}>
+          <EditorApp />
+          <Toaster position="bottom-right" richColors />
+        </TooltipProvider>
+      </div>
+    </ErrorBoundary>
   )
 }

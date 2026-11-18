@@ -16,8 +16,9 @@ type Props = {
 export function PdfPageView({ page, zoom, pendingImage, onConsumeImage }: Props) {
   const hostRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [visible, setVisible] = useState(false)
+  const [visible, setVisible] = useState(true)
   const [viewport, setViewport] = useState<PageViewport | null>(null)
+  const [renderError, setRenderError] = useState<string | null>(null)
   const display = useMemo(
     () => displaySize(page.width, page.height, page.originalRotation, page.rotation, zoom),
     [page.width, page.height, page.originalRotation, page.rotation, zoom],
@@ -40,16 +41,23 @@ export function PdfPageView({ page, zoom, pendingImage, onConsumeImage }: Props)
     if (!visible) return
     let cancelled = false
     async function draw() {
-      if (page.sourceId) {
-        const pdfPage = await getCachedPage(page.sourceId, page.sourcePageIndex)
-        if (cancelled) return
-        const vp = getPageViewport(pdfPage, zoom, page.rotation)
-        setViewport(vp)
-        if (canvasRef.current) {
-          await renderPdfPageToCanvas(canvasRef.current, pdfPage, page.rotation, zoom)
+      try {
+        setRenderError(null)
+        if (page.sourceId) {
+          const pdfPage = await getCachedPage(page.sourceId, page.sourcePageIndex)
+          if (cancelled) return
+          const vp = getPageViewport(pdfPage, zoom, page.rotation)
+          setViewport(vp)
+          if (canvasRef.current) {
+            await renderPdfPageToCanvas(canvasRef.current, pdfPage, page.rotation, zoom)
+          }
+        } else {
+          setViewport(blankViewport(page.width, page.height, zoom))
         }
-      } else {
-        setViewport(blankViewport(page.width, page.height, zoom))
+      } catch (error) {
+        if (!cancelled) {
+          setRenderError(error instanceof Error ? error.message : '这一页无法显示')
+        }
       }
     }
     void draw()
@@ -65,7 +73,11 @@ export function PdfPageView({ page, zoom, pendingImage, onConsumeImage }: Props)
       className="relative mx-auto bg-white shadow-[0_18px_50px_rgba(60,40,20,0.12)]"
       style={{ width: display.width, height: display.height }}
     >
-      {page.sourceId ? (
+      {renderError ? (
+        <div className="flex h-full w-full items-center justify-center p-6 text-center text-sm text-destructive">
+          {renderError}
+        </div>
+      ) : page.sourceId ? (
         <canvas ref={canvasRef} className="block h-full w-full" />
       ) : (
         <div className="flex h-full w-full items-center justify-center bg-[repeating-linear-gradient(0deg,transparent,transparent_27px,#eee7da_28px)] text-sm text-muted-foreground">

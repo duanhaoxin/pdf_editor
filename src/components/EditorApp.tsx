@@ -271,7 +271,7 @@ export function EditorApp() {
 
   return (
     <div
-      className="relative flex h-full min-h-0 flex-col"
+      className="relative flex h-dvh min-h-dvh flex-col overflow-hidden"
       onDrop={(event) => {
         event.preventDefault()
         const files = [...event.dataTransfer.files]
